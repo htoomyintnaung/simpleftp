@@ -46,7 +46,7 @@ public class ServerPI implements Runnable{
 			int replyCode = executeCommand(line.trim());
 			if(replyCode == 221){
 				return;
-			}
+			} 
 		}
 	}
 	
