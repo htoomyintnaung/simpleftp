@@ -82,16 +82,16 @@ public class ServerPI implements Runnable{
         return reply(230, "User (" + username + ") logged in, proceed");
     }
 	
-	private int handleRest(String userCommand, StringTokenizer st) throws Exception {
+	public int handleRest(String userCommand, StringTokenizer st) throws Exception {
         return reply(500, "Unrecognized command");
     }
 	
-	private int handleSyst(String userCommand, StringTokenizer st) {
+	public int handleSyst(String userCommand, StringTokenizer st) {
         String replyMessage = System.getProperty("os.name");
         return reply(215, replyMessage);
     }
 
-	private int handleUser(String userCommand, StringTokenizer st) throws IOException {
+	public int handleUser(String userCommand, StringTokenizer st) throws IOException {
         this.username = st.nextToken();
         return reply(331, "User name (" + username + ") okay, need password.");
     }
