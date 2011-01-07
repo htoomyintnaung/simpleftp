@@ -1,8 +1,12 @@
 package com.googlecode.simpleftp;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -14,6 +18,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -21,10 +26,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class FTPServer extends Activity {
-	private static int COMMAND_PORT = 2121;
+public class MainActivity extends Activity {
+	
 	static final int DIALOG_ALERT_ID = 0;
-	private static ExecutorService executor  = Executors.newCachedThreadPool();
+	private static final String TAG = "MainActivity";
+	private TextView ipAddress;
+	private String ip;
+	
 	
     /** Called when the activity is first created. */
     @Override
@@ -63,7 +71,7 @@ public class FTPServer extends Activity {
 		.setCancelable(false).setPositiveButton("yes", new DialogInterface.OnClickListener(){
 			@Override
 			public void onClick(DialogInterface dialog, int id){
-				FTPServer.this.finish();
+				MainActivity.this.finish();
 			}
 		})
 		.setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -81,36 +89,26 @@ public class FTPServer extends Activity {
     protected void onStart(){
     	super.onStart();
     	ServerSocket s = null;
-    	Socket incoming = null;
+    	
     	
     	try{
-    		s = new ServerSocket(COMMAND_PORT);
-    		String ip = (s.getInetAddress()).getHostAddress();
-    		Context context = this.getApplicationContext();
-    		CharSequence text = ip;
-    		int duration = Toast.LENGTH_LONG;
     		
-    		Toast toast = Toast.makeText(context, text, duration);
-    		Thread.sleep(1000);
-    		toast.show();
-    		while(true){
-    			incoming = s.accept();
-    			executor.execute(new ServerPI(incoming));
-    		}
+    		ipAddress = (TextView)findViewById(R.id.ipAddress);
+    		ip = this.getLocalIpAddress();
+    		
+    		runOnUiThread(new Runnable(){
+    			public void run(){
+    				ipAddress.setText(ip);
+    			}
+    		});
+    		
+    		new Thread(new FTPServerThread()).start();
+    		
     	}
     	catch(Exception e){
-    		System.out.println(e.toString());
     		e.printStackTrace();
     	}
     	finally{
-    		try
-			{
-				if(incoming != null)incoming.close();
-			}
-			catch(IOException ignore)
-			{
-				//ignore
-			}
 
 			try
 			{
@@ -124,5 +122,22 @@ public class FTPServer extends Activity {
 				//ignore
 			}
     	}
+    }
+    
+    public String getLocalIpAddress() {
+        try {
+            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+                NetworkInterface intf = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                    InetAddress inetAddress = enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress()) {
+                        return inetAddress.getHostAddress().toString();
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            Log.e(TAG, ex.toString());
+        }
+        return null;
     }
 }
