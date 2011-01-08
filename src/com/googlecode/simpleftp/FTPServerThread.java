@@ -27,7 +27,7 @@ public class FTPServerThread implements Runnable{
 				executor.execute(new ServerPI(incoming));
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				Log.e("FTPServerThread", e.toString());
+				Log.e(MainActivity.TAG, e.toString());
 			}
 		}
 	}

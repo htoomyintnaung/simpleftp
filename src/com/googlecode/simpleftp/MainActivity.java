@@ -29,7 +29,7 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
 	
 	static final int DIALOG_ALERT_ID = 0;
-	private static final String TAG = "MainActivity";
+	public static final String TAG = "simpleFTP";
 	private TextView ipAddress;
 	private String ip;
 	

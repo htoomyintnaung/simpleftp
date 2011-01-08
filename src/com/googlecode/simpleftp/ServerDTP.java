@@ -5,6 +5,8 @@ import java.net.*;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 
+import android.util.Log;
+
 public class ServerDTP {
 
     private boolean passive;
@@ -120,7 +122,7 @@ public class ServerDTP {
             writer.println(226 + " " + "Finish Transfer.");
             reply = 226;
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+        	Log.e(MainActivity.TAG, e.toString());
         } finally {
             try {
                 if (out != null) {
@@ -133,7 +135,7 @@ public class ServerDTP {
                         ((ServerSocket)data).close();
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+            	Log.e(MainActivity.TAG, e.toString());
             }
         }
         return reply;
@@ -190,7 +192,7 @@ public class ServerDTP {
             reply = 226;
 
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+        	Log.e(MainActivity.TAG, e.toString());
         } finally {
             try {
                 if (in != null) {
@@ -204,7 +206,7 @@ public class ServerDTP {
                     }
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+            	Log.e(MainActivity.TAG, e.toString());
             }
         }
         return reply;
@@ -216,51 +218,72 @@ public class ServerDTP {
      * @return		The FTP status code
      */
     public int sendList(String path) {
+    	Log.d(MainActivity.TAG, "Enter dtp.sendList, show list in Dir " + path);
         File directory = new File(path);
+        if(!directory.isDirectory()){
+        	return spi.reply(550, "It is not a directory");
+        }
+        else if(!directory.canRead()){
+        	return spi.reply(550, "Permission denialed");
+        }
         String fList[] = directory.list();
         Object data = null;
         PrintWriter out = null;
         Socket client = null;
 
         try {
-            if(!passive)
+            if(!passive){
+            	Log.d(MainActivity.TAG, "Enter active mode");
                 data = new Socket(ipAddress, port);
+            }
             else{
+            	Log.d(MainActivity.TAG, "Enter passive mode");
                 data = new ServerSocket(port);
                 client = ((ServerSocket)data).accept();
             }
            
             writer.println(150 + " " + "File status okay; about to open data connection.");
 
-            if(!passive)
+            Log.d(MainActivity.TAG, "Set up link");
+            if(!passive){
+            	Log.d(MainActivity.TAG, "set out");
                 out = new PrintWriter(new ASCIIOutputStream(((Socket)data).getOutputStream()));
+            }
             else{
                 out = new PrintWriter(new ASCIIOutputStream(client.getOutputStream()));
             }
-
+            
+            Log.d(MainActivity.TAG, "Start send list");
             for (int i = 0; i < fList.length; i++) {
                 String fileName = fList[i];
-
+                Log.d(MainActivity.TAG, "Create temp file");
                 File tempfile = new File(directory, fileName);
-
+                
                 Date date = null;
                 SimpleDateFormat dateFormat = null;
                 String dateStr = null;
+                
+                Log.d(MainActivity.TAG, "Check whether the temp file is directory or not");
                 if (!tempfile.isDirectory()) {
+                	Log.d(MainActivity.TAG, "temp file is a file");
                     date = new Date(tempfile.lastModified());
                     dateFormat = new SimpleDateFormat("MMM dd hh:mm");
                     dateStr = dateFormat.format(date);
 
                 } else {
+                	Log.d(MainActivity.TAG, "temp file is a directory");
                     date = new Date(tempfile.lastModified());
                     dateFormat = new SimpleDateFormat("MMM dd  yyyy");
                     dateStr = dateFormat.format(date);
                 }
 
+                Log.d(MainActivity.TAG, "Pad length to file's length number");
                 int padLength = 15 - dateStr.length();
                 for (int j = 0; j < padLength; j++) {
                     dateStr += " ";
                 }
+                
+                Log.d(MainActivity.TAG, "Get the length of temp file");
                 long size = tempfile.length();
                 String sizeStr = Long.toString(size);
                 int sizePadLength = Math.max(12 - sizeStr.length(), 0);
@@ -270,24 +293,39 @@ public class ServerDTP {
                 String sizeField = sizeStr;
 
 
+                Log.d(MainActivity.TAG, "Get the Permission of the file");
                 String permission = "";
+                Log.d(MainActivity.TAG, "Get the Permission of the file");
                 if (tempfile.canRead()) {
+                	Log.d(MainActivity.TAG, "can read");
                     permission += "r";
                 } else {
+                	Log.d(MainActivity.TAG, "can not read");
                     permission += "-";
                 }
                 if (tempfile.canWrite()) {
+                	Log.d(MainActivity.TAG, "can write");
                     permission += "w";
                 } else {
+                	Log.d(MainActivity.TAG, "can not write");
                     permission += "-";
                 }
-                if (tempfile.canExecute()) {
-                    permission += "x";
-                } else {
-                    permission += "-";
-                }
+//                if (tempfile.canExecute()) {
+//                	Log.d(MainActivity.TAG, "can execute");
+//                    permission += "x";
+//                } else {
+//                	Log.d(MainActivity.TAG, "can not execute");
+//                    permission += "-";
+//                }
+                
+                permission += "x";
+                
+                Log.d(MainActivity.TAG, "Send the info of the temp file");
                 //since windows lack the permission for user, group and others, we just set them as same.
                 String privi = permission + permission + permission;
+                if(out == null){
+                	Log.d(MainActivity.TAG, "out is null");
+                }
                 out.print(tempfile.isDirectory() ? 'd' : '-');
                 out.print(privi);
                 out.print(" ");
@@ -305,13 +343,16 @@ public class ServerDTP {
                 out.print(tempfile.getName());
 
                 out.print('\n');
+                Log.d(MainActivity.TAG, "Finish send one file");
             }
+            Log.d(MainActivity.TAG, "Finish send list");
 
             out.flush();
+            Log.d(MainActivity.TAG, "Flush PrinterWriter");
             writer.println(226 + " " + "Finish Transfer");
 
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+        	Log.e(MainActivity.TAG, e.toString());
         } finally {
             try {
                 if (data != null) {
@@ -324,7 +365,7 @@ public class ServerDTP {
                     out.close();
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+            	Log.e(MainActivity.TAG, e.toString());
             }
         }
         return 226;
@@ -358,7 +399,7 @@ public class ServerDTP {
             writer.println(226 + " " + "Finish Transfer");
             reply = 226;
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+        	Log.e(MainActivity.TAG, e.toString());
         } finally {
             try {
                 if (data != null) {
@@ -368,7 +409,7 @@ public class ServerDTP {
                     out.close();
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+            	Log.e(MainActivity.TAG, e.toString());
             }
         }
         return reply;

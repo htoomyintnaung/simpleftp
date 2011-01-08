@@ -11,6 +11,8 @@ import java.net.Socket;
 import java.util.Random;
 import java.util.StringTokenizer;
 
+import android.util.Log;
+
 public class ServerPI implements Runnable {
 	private Socket clientSocket;
 	private BufferedReader in;
@@ -39,8 +41,8 @@ public class ServerPI implements Runnable {
 				this.clientSocket.getInputStream()));
 		out = new PrintWriter(this.clientSocket.getOutputStream(), true);
 		dtp = new ServerDTP(this);
-		baseDir = new File("").getAbsolutePath();
-		
+		//baseDir = new File("").getAbsolutePath();
+		baseDir = "/mnt/sdcard";
 		relativeDir = "/";
 		absoluteDir = baseDir + relativeDir;
 		fileName = "";
@@ -231,11 +233,10 @@ public class ServerPI implements Runnable {
      * @return 				The FTP status code
      */
     public int handleList(String userCommand, StringTokenizer st) {
-        System.out.println("Enter handleList!\n");
-
+    	Log.d(MainActivity.TAG, "Enter handList func");
         //fileName = st.nextToken();
         //filePath = this.absoluteDir + fileName;
-
+    	
         return dtp.sendList(this.absoluteDir);
     }
 
@@ -294,6 +295,7 @@ public class ServerPI implements Runnable {
      * @throws Exception
      */
     public int handlePort(String userCommand, StringTokenizer st) throws Exception {
+    	Log.d(MainActivity.TAG, "Enter handPort func");
         String portArgu = st.nextToken();
         System.out.println(portArgu);
         String[] portArguList = portArgu.split(",");
@@ -308,10 +310,17 @@ public class ServerPI implements Runnable {
         int port = p1 * 256 + p2;
         if(ipAddress.equals("127.0.0.1"))
         	ipAddress = "10.0.2.2";
+        Log.d(MainActivity.TAG, "Set Ip address: " + ipAddress + ":" + port);
         dtp.setDataIPPort(ipAddress, port);
         return reply(200, "The data port has been set");
     }
 
+    
+    public int handlePasv(String userCommand, StringTokenizer st){
+    	Log.d(MainActivity.TAG, "Enter handlePasv func");
+        dtp.setPassiveMode();
+        return reply(227, "Enter passive mode");
+    }
 	/**
      * Command handler for SYST command
      * @param userCommand 	The user command read from client socket
@@ -418,7 +427,7 @@ public class ServerPI implements Runnable {
      * @param statusMessage		The FTP status message
      * @return					The FTP status code
      */
-	private int reply(int statusCode, String statusMessage) {
+	public int reply(int statusCode, String statusMessage) {
 		out.println(statusCode + " " + statusMessage);
 		return statusCode;
 	}
@@ -429,21 +438,27 @@ public class ServerPI implements Runnable {
 		try {
 			this.readCommandLoop();
 		} catch (IOException e) {
+			Log.e(MainActivity.TAG, e.toString());
 			e.printStackTrace();
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
+			Log.e(MainActivity.TAG, e.toString());
 			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block
+			Log.e(MainActivity.TAG, e.toString());
 			e.printStackTrace();
 		} catch (InvocationTargetException e) {
 			// TODO Auto-generated catch block
+			Log.e(MainActivity.TAG, e.toString());
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
 			// TODO Auto-generated catch block
+			Log.e(MainActivity.TAG, e.toString());
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
+			Log.e(MainActivity.TAG, e.toString());
 			e.printStackTrace();
 		} finally {
 			try {
@@ -460,6 +475,7 @@ public class ServerPI implements Runnable {
 					clientSocket = null;
 				}
 			} catch (IOException e) {
+				Log.e(MainActivity.TAG, e.toString());
 				e.printStackTrace();
 			}
 		}
