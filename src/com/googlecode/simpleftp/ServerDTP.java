@@ -75,13 +75,16 @@ public class ServerDTP {
     public void setType(String type) {
         this.type = type;
     }
+    
 
     /**
      * Receive the file sent from the client at specified path
      * @param path	The specified directory
      * @return		The FTP status code
      */
-    public int receiveFile(String path) {
+    public int receiveFile(String path, boolean append) {
+    	Log.d(MainActivity.TAG, "Enter ServerDTP.receiveFile");
+    	Log.d(MainActivity.TAG, "Receive file " + path);
         int reply = 0;
 
         OutputStream out = null;
@@ -89,22 +92,25 @@ public class ServerDTP {
         InputStream in = null;
         Socket client = null;
         try {
-            if(!passive)
+            if(!passive){
+            	Log.d(MainActivity.TAG, "Enter active mode");
                 data = new Socket(ipAddress, port);
+            }
             else{
+            	Log.d(MainActivity.TAG, "Enter passive mode");
                 data = new ServerSocket(port);
                 client = ((ServerSocket)data).accept();
             }
 
             File file = new File(path);
             if (type.equals("I")) {
-                out = new BufferedOutputStream(new FileOutputStream(file));
+                out = new BufferedOutputStream(new FileOutputStream(file, append));
             } else if (type.equals("A")) {
-                out = new ASCIIOutputStream(new FileOutputStream(file));
+                out = new ASCIIOutputStream(new FileOutputStream(file, append));
             }
 
             writer.println(150 + " " + "File status okay; about to open data connection.");
-
+            Log.d(MainActivity.TAG, "File status okay; about to open data connection.");
             if(!passive)
                 in = ((Socket)data).getInputStream();
             else{
@@ -113,11 +119,13 @@ public class ServerDTP {
 
             byte bufferRead[] = new byte[BUFFER];
             int nread;
+            Log.d(MainActivity.TAG, "Start transfer file");
             while ((nread = in.read(bufferRead, 0, BUFFER)) > 0) {
                 out.write(bufferRead, 0, nread);
             }
             out.flush();
             in.close();
+            Log.d(MainActivity.TAG, "Finish transfer");
 
             writer.println(226 + " " + "Finish Transfer.");
             reply = 226;
@@ -138,6 +146,7 @@ public class ServerDTP {
             	Log.e(MainActivity.TAG, e.toString());
             }
         }
+        Log.d(MainActivity.TAG, "Leave ServerDTP.receiveFile");
         return reply;
     }
 

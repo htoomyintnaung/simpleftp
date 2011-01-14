@@ -88,6 +88,16 @@ public class ServerPI implements Runnable {
 		return out;
 	}
 
+	public int handleAppe(String userCommand, StringTokenizer st){
+		Log.d(MainActivity.TAG, "Enter handleAppe command");
+		fileName = st.nextToken();
+		filePath = this.absoluteDir + "/" + fileName;
+		
+		dtp.receiveFile(filePath, true);
+		Log.d(MainActivity.TAG, "Leave handleAppe command");
+		return 0;
+	}
+	
 	/**
 	 * Command handler for CDUP command
 	 * 
@@ -98,7 +108,7 @@ public class ServerPI implements Runnable {
 	 * @return The FTP status code
 	 */
 	public int handleCdup(String userCommand, StringTokenizer st) {
-		System.out.println("Enter handleCdup!\n");
+		//System.out.println("Enter handleCdup!\n");
 
 		if (!relativeDir.equals("/")) {
 			String tempDir = relativeDir.substring(0, relativeDir.length() - 1);
@@ -193,7 +203,7 @@ public class ServerPI implements Runnable {
 
 		fileName = st.nextToken();
 		filePath = this.absoluteDir + "/" + fileName;
-		return dtp.receiveFile(filePath);
+		return dtp.receiveFile(filePath, false);
 	}
 
 	/**
