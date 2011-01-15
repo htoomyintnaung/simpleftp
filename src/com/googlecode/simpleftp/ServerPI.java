@@ -41,7 +41,7 @@ public class ServerPI implements Runnable {
 				this.clientSocket.getInputStream()));
 		out = new PrintWriter(this.clientSocket.getOutputStream(), true);
 		dtp = new ServerDTP(this);
-		//baseDir = new File("").getAbsolutePath();
+		// baseDir = new File("").getAbsolutePath();
 		baseDir = "/mnt/sdcard";
 		relativeDir = "/";
 		absoluteDir = baseDir + relativeDir;
@@ -88,16 +88,65 @@ public class ServerPI implements Runnable {
 		return out;
 	}
 
-	public int handleAppe(String userCommand, StringTokenizer st){
+	public int handleRmd(String userCommand, StringTokenizer st) {
+		Log.d(MainActivity.TAG, "Enter handleRmd command");
+		String dirName = st.nextToken();
+		while (st.hasMoreTokens()) {
+			dirName += " " + st.nextToken();
+		}
+		Log.d(MainActivity.TAG, "Deleting directory" + dirName);
+
+		String dirPath = this.absoluteDir + "/" + dirName;
+		File dir = new File(dirPath);
+
+		if (!dir.exists()) {
+			Log.d(MainActivity.TAG, "directory " + dirName + " does not exist");
+			return reply(431, "Directory " + dirPath + " does not exist");
+		}
+		if (dir.delete()) {
+			Log.d(MainActivity.TAG, "finish delete directory" + dirName);
+			return reply(250, "Directory " + dirPath + " deleted");
+		}
+		else {
+			Log.d(MainActivity.TAG, "fail to delete directory" + dirName);
+			return reply(550, "Fail to delete directory" + dirPath);
+		}
+
+	}
+
+	public int handleMkd(String userCommand, StringTokenizer st) {
+		Log.d(MainActivity.TAG, "Enter handleMkd command");
+		String dirName = st.nextToken();
+		while (st.hasMoreTokens()) {
+			dirName += " " + st.nextToken();
+		}
+		Log.d(MainActivity.TAG, "Making directory" + dirName);
+
+		String dirPath = this.absoluteDir + "/" + dirName;
+		File dir = new File(dirPath);
+
+		if (dir.exists()) {
+			Log.d(MainActivity.TAG, "directory " + dirName + " already exists");
+			return reply(550, "Directory " + dirPath + " already exists");
+		}
+		if (dir.mkdirs()) {
+			Log.d(MainActivity.TAG, "finish make directory" + dirName);
+			return reply(257, "directory " + dirPath + " created");
+		} else {
+			Log.d(MainActivity.TAG, "fail to make directory" + dirName);
+			return reply(550, "Fail to creat directory " + dirPath);
+		}
+	}
+
+	public int handleAppe(String userCommand, StringTokenizer st) {
 		Log.d(MainActivity.TAG, "Enter handleAppe command");
 		fileName = st.nextToken();
 		filePath = this.absoluteDir + "/" + fileName;
-		
-		dtp.receiveFile(filePath, true);
+
 		Log.d(MainActivity.TAG, "Leave handleAppe command");
-		return 0;
+		return dtp.receiveFile(filePath, true);
 	}
-	
+
 	/**
 	 * Command handler for CDUP command
 	 * 
@@ -108,8 +157,8 @@ public class ServerPI implements Runnable {
 	 * @return The FTP status code
 	 */
 	public int handleCdup(String userCommand, StringTokenizer st) {
-		//System.out.println("Enter handleCdup!\n");
-
+		// System.out.println("Enter handleCdup!\n");
+		Log.d(MainActivity.TAG, "Enter handleCdup command");
 		if (!relativeDir.equals("/")) {
 			String tempDir = relativeDir.substring(0, relativeDir.length() - 1);
 			relativeDir = tempDir.substring(0, tempDir.lastIndexOf('/') + 1);
@@ -132,17 +181,22 @@ public class ServerPI implements Runnable {
 	 * @return The FTP status code
 	 */
 	public int handleCwd(String userCommand, StringTokenizer st) {
+		Log.d(MainActivity.TAG, "Enter handleCwd command");
 		String nextPathSegment = st.nextToken();
+		while (st.hasMoreTokens()) {
+			nextPathSegment += " " + st.nextToken();
+		}
+		Log.d(MainActivity.TAG, "To enter directory " + nextPathSegment);
 		if (nextPathSegment.equals("..")) {
 			return handleCdup(userCommand, st);
 		}
-
+		
 		if (nextPathSegment.charAt(0) == '/') {
 			relativeDir = nextPathSegment;
 		} else {
 			relativeDir = relativeDir + nextPathSegment + "/";
 		}
-
+		
 		absoluteDir = baseDir + relativeDir;
 		return reply(250, "CWD command successful." + this.relativeDir
 				+ " is the current directory.");
@@ -226,29 +280,32 @@ public class ServerPI implements Runnable {
 					+ " does not exist in the directory");
 		}
 
-		//System.out.println("Deleting file...");
+		// System.out.println("Deleting file...");
 		boolean deleteStatus = targetFile.delete();
 		if (deleteStatus == true) {
-			//System.out.println("Finish deleting file...");
+			// System.out.println("Finish deleting file...");
 			return reply(250, "DELE command successful");
 		} else {
 			return reply(550, "DELE command fails");
 		}
 	}
-	
+
 	/**
-     * Command handler for LIST command
-     * @param userCommand 	The user command read from client socket
-     * @param st 			String tokenizer for user command
-     * @return 				The FTP status code
-     */
-    public int handleList(String userCommand, StringTokenizer st) {
-    	Log.d(MainActivity.TAG, "Enter handList func");
-        //fileName = st.nextToken();
-        //filePath = this.absoluteDir + fileName;
-    	
-        return dtp.sendList(this.absoluteDir);
-    }
+	 * Command handler for LIST command
+	 * 
+	 * @param userCommand
+	 *            The user command read from client socket
+	 * @param st
+	 *            String tokenizer for user command
+	 * @return The FTP status code
+	 */
+	public int handleList(String userCommand, StringTokenizer st) {
+		Log.d(MainActivity.TAG, "Enter handList func");
+		// fileName = st.nextToken();
+		// filePath = this.absoluteDir + fileName;
+
+		return dtp.sendList(this.absoluteDir);
+	}
 
 	public int handlePass(String userCommand, StringTokenizer st) {
 		if (username == null) {
@@ -296,152 +353,173 @@ public class ServerPI implements Runnable {
 			throws Exception {
 		return reply(500, "Unrecognized command");
 	}
-	
+
 	/**
-     * Command handler for PORT command
-     * @param userCommand 	The user command read from client socket
-     * @param st 			String tokenizer for user command
-     * @return 				The FTP status code
-     * @throws Exception
-     */
-    public int handlePort(String userCommand, StringTokenizer st) throws Exception {
-    	Log.d(MainActivity.TAG, "Enter handPort func");
-        String portArgu = st.nextToken();
-        System.out.println(portArgu);
-        String[] portArguList = portArgu.split(",");
-        String ipAddress = "";
-        for (int i = 0; i < 3; i++) {
-            ipAddress += portArguList[i] + ".";
-        }
-        ipAddress += portArguList[3];
+	 * Command handler for PORT command
+	 * 
+	 * @param userCommand
+	 *            The user command read from client socket
+	 * @param st
+	 *            String tokenizer for user command
+	 * @return The FTP status code
+	 * @throws Exception
+	 */
+	public int handlePort(String userCommand, StringTokenizer st)
+			throws Exception {
+		Log.d(MainActivity.TAG, "Enter handPort func");
+		String portArgu = st.nextToken();
+		System.out.println(portArgu);
+		String[] portArguList = portArgu.split(",");
+		String ipAddress = "";
+		for (int i = 0; i < 3; i++) {
+			ipAddress += portArguList[i] + ".";
+		}
+		ipAddress += portArguList[3];
 
-        int p1 = Integer.parseInt(portArguList[4]);
-        int p2 = Integer.parseInt(portArguList[5]);
-        int port = p1 * 256 + p2;
-        if(ipAddress.equals("127.0.0.1"))
-        	ipAddress = "10.0.2.2";
-        Log.d(MainActivity.TAG, "Set Ip address: " + ipAddress + ":" + port);
-        dtp.setDataIPPort(ipAddress, port);
-        return reply(200, "The data port has been set");
-    }
+		int p1 = Integer.parseInt(portArguList[4]);
+		int p2 = Integer.parseInt(portArguList[5]);
+		int port = p1 * 256 + p2;
+		if (ipAddress.equals("127.0.0.1"))
+			ipAddress = "10.0.2.2";
+		Log.d(MainActivity.TAG, "Set Ip address: " + ipAddress + ":" + port);
+		dtp.setDataIPPort(ipAddress, port);
+		return reply(200, "The data port has been set");
+	}
 
-    
-    public int handlePasv(String userCommand, StringTokenizer st){
-    	Log.d(MainActivity.TAG, "Enter handlePasv func");
-        dtp.setPassiveMode();
-        return reply(227, "Enter passive mode");
-    }
+	public int handlePasv(String userCommand, StringTokenizer st) {
+		Log.d(MainActivity.TAG, "Enter handlePasv func");
+		dtp.setPassiveMode();
+		return reply(227, "Enter passive mode");
+	}
+
 	/**
-     * Command handler for SYST command
-     * @param userCommand 	The user command read from client socket
-     * @param st 			String tokenizer for user command
-     * @return 				The FTP status code
-     */
-    public int handleSyst(String userCommand, StringTokenizer st) {
-        //System.out.println("Enter handleSyst!\n");
+	 * Command handler for SYST command
+	 * 
+	 * @param userCommand
+	 *            The user command read from client socket
+	 * @param st
+	 *            String tokenizer for user command
+	 * @return The FTP status code
+	 */
+	public int handleSyst(String userCommand, StringTokenizer st) {
+		// System.out.println("Enter handleSyst!\n");
 
-        String replyMessage = System.getProperty("os.name");
+		String replyMessage = System.getProperty("os.name");
 
-        return reply(215, replyMessage);
-    }
+		return reply(215, replyMessage);
+	}
 
 	public int handleUser(String userCommand, StringTokenizer st)
 			throws IOException {
 		this.username = st.nextToken();
 		return reply(331, "User name (" + username + ") okay, need password.");
 	}
-	
-	/**
-     * Command handler for QUIT command
-     * @param userCommand 	The user command read from client socket
-     * @param st 			String tokenizer for user command
-     * @return 				The FTP status code
-     */
-    public int handleQuit(String userCommand, StringTokenizer st) {
-        System.out.println("Enter handleQuit!\n");
-
-
-        username = null;
-        password = null;
-
-        try {
-            if (in != null) {
-                in.close();
-            }
-            if (out != null) {
-                out.close();
-            }
-            if (clientSocket != null) {
-                clientSocket.close();
-            }
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        return reply(221, "Client:" + clientSocket.getInetAddress() + " at port " + clientSocket.getPort() + " quits!");
-    }
 
 	/**
-     * Command handler for PWD command
-     * @param userCommand 	The user command read from client socket
-     * @param st 			String tokenizer for user command
-     * @return 				The FTP status code
-     */
-    public int handlePwd(String userCommand, StringTokenizer st) {
-        //System.out.println("Enter handlePwd!\n");
+	 * Command handler for QUIT command
+	 * 
+	 * @param userCommand
+	 *            The user command read from client socket
+	 * @param st
+	 *            String tokenizer for user command
+	 * @return The FTP status code
+	 */
+	public int handleQuit(String userCommand, StringTokenizer st) {
+		System.out.println("Enter handleQuit!\n");
 
-        return reply(257, "\"" + this.relativeDir + "\"" + "is current directory");
-    }
-    
-    /**
-     * Command handler for TYPE command
-     * @param userCommand 	The user command read from client socket
-     * @param st 			String tokenizer for user command
-     * @return 				The FTP status code
-     */
-    public int handleType(String userCommand, StringTokenizer st) {
-        String typeArgu = st.nextToken();
-        String typeName = null;
-        if (typeArgu.equals("A")) {
-            dtp.setType("A");
-            typeName = "ASCII";
-        } else if (typeArgu.equals("I")) {
-            dtp.setType("I");
-            typeName = "BINARY";
-        }
+		username = null;
+		password = null;
 
-        return reply(200, "Use " + typeName + " type to transfer on data connection");
-    }
-    
-    /**
-     * Check the user login status before any subsequent operation
-     * @return The FTP status code
-     */
-    private int checkLoginStatus() {
-        if (username == null || username.equals("")) {
-            return reply(530, "Not logged in");
-        }
+		try {
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
+			if (clientSocket != null) {
+				clientSocket.close();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
-        if (password == null || password.equals("")) {
-            return reply(331, "User name okay, need password");
-        }
+		return reply(221, "Client:" + clientSocket.getInetAddress()
+				+ " at port " + clientSocket.getPort() + " quits!");
+	}
 
-        return reply(230, "User (" + username + ") logged in, proceed");
+	/**
+	 * Command handler for PWD command
+	 * 
+	 * @param userCommand
+	 *            The user command read from client socket
+	 * @param st
+	 *            String tokenizer for user command
+	 * @return The FTP status code
+	 */
+	public int handlePwd(String userCommand, StringTokenizer st) {
+		// System.out.println("Enter handlePwd!\n");
 
-    }
-    
-    /**
-     * Reply to the remote cient the FTP status code and status message
-     * @param statusCode		The FTP status code
-     * @param statusMessage		The FTP status message
-     * @return					The FTP status code
-     */
+		return reply(257, "\"" + this.relativeDir + "\""
+				+ "is current directory");
+	}
+
+	/**
+	 * Command handler for TYPE command
+	 * 
+	 * @param userCommand
+	 *            The user command read from client socket
+	 * @param st
+	 *            String tokenizer for user command
+	 * @return The FTP status code
+	 */
+	public int handleType(String userCommand, StringTokenizer st) {
+		String typeArgu = st.nextToken();
+		String typeName = null;
+		if (typeArgu.equals("A")) {
+			dtp.setType("A");
+			typeName = "ASCII";
+		} else if (typeArgu.equals("I")) {
+			dtp.setType("I");
+			typeName = "BINARY";
+		}
+
+		return reply(200, "Use " + typeName
+				+ " type to transfer on data connection");
+	}
+
+	/**
+	 * Check the user login status before any subsequent operation
+	 * 
+	 * @return The FTP status code
+	 */
+	private int checkLoginStatus() {
+		if (username == null || username.equals("")) {
+			return reply(530, "Not logged in");
+		}
+
+		if (password == null || password.equals("")) {
+			return reply(331, "User name okay, need password");
+		}
+
+		return reply(230, "User (" + username + ") logged in, proceed");
+
+	}
+
+	/**
+	 * Reply to the remote cient the FTP status code and status message
+	 * 
+	 * @param statusCode
+	 *            The FTP status code
+	 * @param statusMessage
+	 *            The FTP status message
+	 * @return The FTP status code
+	 */
 	public int reply(int statusCode, String statusMessage) {
 		out.println(statusCode + " " + statusMessage);
 		return statusCode;
 	}
-	
 
 	@Override
 	public void run() {
