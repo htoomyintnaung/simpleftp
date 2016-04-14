@@ -1,0 +1,1 @@
+This is a simple ftp server on android platform.
